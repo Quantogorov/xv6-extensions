@@ -80,3 +80,24 @@ kalloc(void)
     memset((char *)r, 5, PGSIZE); // fill with junk
   return (void *)r;
 }
+
+
+// Counts the number of non-null addresses present in the freelist
+// Dont lock on the runs traversed, as whenever a runs properties change is in a lock on kmem
+uint64 countFree(void)
+{
+  int len = 0;
+  struct run *r;
+  acquire(&kmem.lock);
+  r = kmem.freelist;
+  while(r)
+  {
+    len += 1;
+    r = r->next;
+  }
+  release(&kmem.lock);
+  return len;
+}
+
+  
+

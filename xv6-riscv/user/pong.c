@@ -45,7 +45,7 @@ unsigned int playPong(int isChild,int rec[], int ans[])
 	while (1)
 	{	
 		receive(rec);
-		printf("\n%c",buf);
+		//printf("\n%c",buf);
 		if(isChild) {
 			buf = 0x73;
 		} else {
