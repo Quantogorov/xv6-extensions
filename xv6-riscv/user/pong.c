@@ -3,8 +3,10 @@
 #include "kernel/fcntl.h"
 #include "user/user.h"
 #define EXIT_FAILURE 1
-char buf;
+#define EXIT_SUCCESS 0
 
+char buf;
+unsigned int num_exchanges;
 
 // sends the byte 0x01 to the other side
 void shoot(int pipe[]) 
@@ -23,14 +25,20 @@ char receive(int pipe[])
 		printf("\nread error!");
 		exit(EXIT_FAILURE);
 	}
+	if(buf == 0x01) { // signal for child to exit
+		exit(EXIT_FAILURE);
+	}
 	return buf;
 }
 
-void playPong(int isChild,int rec[], int ans[])
+unsigned int playPong(int isChild,int rec[], int ans[])
 {	
+	unsigned int time;
+
 	// parent gets the serve
-	if(isChild)
+	if(isChild==0)
 	{ 
+		starttime();
 		buf = 0x46;
 		shoot(ans);		
 	}
@@ -41,10 +49,18 @@ void playPong(int isChild,int rec[], int ans[])
 		if(isChild) {
 			buf = 0x73;
 		} else {
+			num_exchanges += 1;
 			buf = 0x46;
+		}
+		if(num_exchanges == 10000) {
+			buf = 0x01;
+			shoot(ans);
+			time = endtime();
+			break;
 		}
 		shoot(ans);
 	}
+	return time;
 	
 }
 
@@ -59,6 +75,7 @@ int main(int argc, char *argv[])
 	int isChild;
 	buf = 0x00;
 	int numBytes = 1;
+	unsigned int time;
 	// initialize both pipes and check for errors
 	
 	if(pipe(PtoC) == -1 || pipe(CtoP) == -1)
@@ -81,12 +98,11 @@ int main(int argc, char *argv[])
 			playPong(isChild, PtoC, CtoP);
 		default:
 			isChild = 0;
-			playPong(isChild,CtoP, PtoC);
+			num_exchanges = 0;
+			time = playPong(isChild,CtoP, PtoC);
 
 	}
-
-		
-	
+	printf("total of %d exchanges within %d ms, which is %d ex/sec!\n", num_exchanges, time,(num_exchanges * 1000 )/time);
 	return 0;
 }
 
